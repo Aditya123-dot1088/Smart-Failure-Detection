@@ -75,7 +75,6 @@ function glowColor(level) {
 }
 
 function capitalize(s) {
-  if (s === 'HIGH') return 'Poor Risk'
-  if (s === 'MEDIUM') return 'Moderate Risk'
-  return 'Low Risk'
+  if (s === 'MEDIUM') return 'Moderate'
+  return s.charAt(0) + s.slice(1).toLowerCase()
 }

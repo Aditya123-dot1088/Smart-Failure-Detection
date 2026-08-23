@@ -1,413 +1,140 @@
 import { useMemo, useState } from 'react'
-
 import Sidebar from './components/Sidebar.jsx'
 import ProjectInput from './components/ProjectInput.jsx'
 import RiskAssessment from './components/RiskAssessment.jsx'
 import Recommendations from './components/Recommendations.jsx'
 import Dashboard from './components/Dashboard.jsx'
-
-import {
-  generateMarketData,
-  computeRisk,
-  computeRecommendations,
-  computeReadiness,
-  analyzeProject
-} from './utils/analysis.js'
-
+import { generateMarketData, computeRisk, computeRecommendations, computeReadiness } from './utils/analysis.js'
 import { saveProject } from './utils/api.js'
-import { generateAISummary } from './utils/aiSummary.js'
 
 export default function App() {
   const [tab, setTab] = useState('input')
   const [submission, setSubmission] = useState(null)
-
-  const [saveState, setSaveState] = useState('idle')
+  const [saveState, setSaveState] = useState('idle') // idle | saving | saved | error
   const [saveError, setSaveError] = useState(null)
+  const [projectId, setProjectId] = useState(null)
+  const [strategicAnalysis, setStrategicAnalysis] = useState(null)
 
-  /*
-   * ============================================================
-   * CORE MARKET ANALYSIS
-   * ============================================================
-   */
-
-  const market = useMemo(() => {
-    if (!submission) return null
-
-    return generateMarketData(
-      submission.sector,
-      Number(submission.budgetLakh)
-    )
-  }, [submission])
-
-  /*
-   * ============================================================
-   * CORE RISK ANALYSIS
-   * ============================================================
-   */
-
-  const risk = useMemo(() => {
-    if (!submission || !market) return null
-
-    return computeRisk(submission, market)
-  }, [submission, market])
-
-  /*
-   * ============================================================
-   * RECOMMENDATIONS
-   * ============================================================
-   */
-
-  const recommendations = useMemo(() => {
-    if (!submission || !market || !risk) return null
-
-    return computeRecommendations(
-      risk,
-      market,
-      submission
-    )
-  }, [submission, market, risk])
-
-  /*
-   * ============================================================
-   * LAUNCH READINESS
-   * ============================================================
-   */
-
-  const readiness = useMemo(() => {
-    if (!risk) return null
-
-    return computeReadiness(risk)
-  }, [risk])
-
-  /*
-   * ============================================================
-   * MILESTONE 2 ANALYSIS
-   *
-   * This produces:
-   *
-   * advancedRisk
-   * SWOT
-   * Feasibility
-   * ============================================================
-   */
-
-  const analysis = useMemo(() => {
-    if (!submission) return null
-
-    return analyzeProject(submission)
-  }, [submission])
-
-  /*
-   * ============================================================
-   * AI EXECUTIVE SUMMARY
-   * ============================================================
-   *
-   * We use the advanced analysis when available.
-   * We also fall back to the existing market/risk calculations.
-   * This prevents the dashboard from crashing if one optional
-   * property is not returned by analyzeProject().
-   */
-
-  const aiSummary = useMemo(() => {
-    if (!submission || !analysis) return ''
-
-    const summaryMarket = analysis.market || market
-    const summaryRisk = analysis.risk || risk
-
-    if (
-      !analysis.feasibility ||
-      !summaryMarket ||
-      !summaryRisk ||
-      !analysis.swot
-    ) {
-      return ''
-    }
-
-    try {
-      return generateAISummary({
-        feasibility: analysis.feasibility,
-        risk: summaryRisk,
-        market: summaryMarket,
-        swot: analysis.swot
-      })
-    } catch (error) {
-      console.error('AI summary generation failed:', error)
-      return ''
-    }
-  }, [submission, analysis, market, risk])
-
-  /*
-   * ============================================================
-   * PROJECT ANALYSIS / DATABASE SAVE
-   * ============================================================
-   */
+  const market = useMemo(
+    () => (submission ? generateMarketData(submission.sector, Number(submission.budgetLakh)) : null),
+    [submission]
+  )
+  const risk = useMemo(() => (submission && market ? computeRisk(submission, market) : null), [submission, market])
+  const recommendations = useMemo(
+    () => (submission && market && risk ? computeRecommendations(risk, market, submission) : null),
+    [submission, market, risk]
+  )
+  const readiness = useMemo(() => (risk ? computeReadiness(risk) : null), [risk])
 
   async function handleAnalyze(form) {
-    /*
-     * Store the submitted project.
-     */
     setSubmission(form)
-
-    /*
-     * Move directly to Risk Assessment.
-     */
+    setStrategicAnalysis(null)
     setTab('risk')
 
-    /*
-     * Calculate the same snapshot that the dashboard will use.
-     */
-    const computedMarket = generateMarketData(
-      form.sector,
-      Number(form.budgetLakh)
-    )
-
-    const computedRisk = computeRisk(
-      form,
-      computedMarket
-    )
-
-    const computedRecommendations = computeRecommendations(
-      computedRisk,
-      computedMarket,
-      form
-    )
-
-    const computedReadiness = computeReadiness(
-      computedRisk
-    )
-
-    /*
-     * Milestone 2 analysis.
-     */
-    const computedAnalysis = analyzeProject(form)
+    // Compute the analysis snapshot synchronously so we persist the exact
+    // figures the user is about to see, then save it to Postgres.
+    const computedMarket = generateMarketData(form.sector, Number(form.budgetLakh))
+    const computedRisk = computeRisk(form, computedMarket)
+    const computedRecommendations = computeRecommendations(computedRisk, computedMarket, form)
+    const computedReadiness = computeReadiness(computedRisk)
 
     setSaveState('saving')
     setSaveError(null)
-
     try {
-      await saveProject({
+      const saved = await saveProject({
         name: form.name,
         sector: form.sector,
         businessModel: form.businessModel,
         targetMarket: form.targetMarket,
         budgetLakh: form.budgetLakh || null,
         description: form.description,
-
         market: computedMarket,
         risk: computedRisk,
         recommendations: computedRecommendations,
-        readiness: computedReadiness,
-
-        /*
-         * Store Milestone 2 intelligence as well.
-         */
-        advancedRisk: computedAnalysis?.advancedRisk || null,
-        swot: computedAnalysis?.swot || null,
-        feasibility: computedAnalysis?.feasibility || null
+        readiness: computedReadiness
       })
-
+      setProjectId(saved?.id ?? null)
       setSaveState('saved')
-    } catch (error) {
-      console.error('Project save failed:', error)
-
+    } catch (err) {
       setSaveState('error')
-      setSaveError(error.message)
+      setSaveError(err.message)
     }
   }
-
-  /*
-   * ============================================================
-   * TOP NAVIGATION / STEP INFORMATION
-   * ============================================================
-   */
 
   const STEP_META = {
-    input: {
-      eyebrow: 'Step 01 · Data Collection',
-      label: 'Project Input'
-    },
-
-    risk: {
-      eyebrow: 'Step 02 · Automated Assessment',
-      label: 'Risk Assessment'
-    },
-
-    recommendations: {
-      eyebrow: 'Step 03 · Suggested Actions',
-      label: 'Recommendations'
-    },
-
-    dashboard: {
-      eyebrow: 'Step 04 · Summary',
-      label: 'Dashboard'
-    }
+    input: { eyebrow: 'Step 01 · Data Collection', label: 'Project Input' },
+    risk: { eyebrow: 'Step 02 · Automated Assessment', label: 'Risk Assessment' },
+    recommendations: { eyebrow: 'Step 03 · Suggested Actions', label: 'Recommendations' },
+    dashboard: { eyebrow: 'Step 04 · Summary', label: 'Dashboard' }
   }
-
-  /*
-   * ============================================================
-   * APPLICATION UI
-   * ============================================================
-   */
 
   return (
     <div className="h-screen w-screen flex bg-canvas overflow-hidden">
-
-      <Sidebar
-        active={tab}
-        onChange={setTab}
-        hasData={!!submission}
-      />
+      <Sidebar active={tab} onChange={setTab} hasData={!!submission} />
 
       <div className="flex-1 min-w-0 h-screen flex flex-col overflow-hidden">
-
-        {/* Gold application accent */}
         <div className="h-[3px] w-full shrink-0 bg-gradient-to-r from-brass via-brass-light to-brass" />
-
-        {/* Top step bar */}
         <div className="shrink-0 h-11 flex items-center px-8 border-b border-line-soft bg-canvas/90 backdrop-blur-sm">
-
           <span className="font-mono text-[10.5px] tracking-[0.16em] uppercase text-fg-low">
             {STEP_META[tab]?.eyebrow}
           </span>
-
-          <span className="mx-2.5 text-line">
-            /
-          </span>
-
+          <span className="mx-2.5 text-line">/</span>
           <span className="font-mono text-[10.5px] tracking-[0.16em] uppercase text-brass">
             {STEP_META[tab]?.label}
           </span>
-
-          <SaveStatus
-            state={saveState}
-            error={saveError}
-          />
-
+          <SaveStatus state={saveState} error={saveError} />
         </div>
 
-        {/* Main application content */}
         <div className="flex-1 min-h-0 overflow-hidden">
+          {tab === 'input' && <ProjectInput onAnalyze={handleAnalyze} submission={submission} />}
 
-          {/* ==================================================
-              PROJECT INPUT
-              ================================================== */}
-
-          {tab === 'input' && (
-            <ProjectInput
-              onAnalyze={handleAnalyze}
-              submission={submission}
-            />
-          )}
-
-          {/* ==================================================
-              RISK ASSESSMENT
-              ================================================== */}
-
-          {tab === 'risk' && risk && (
-            <RiskAssessment
-              risk={risk}
-              market={market}
-            />
-          )}
-
-          {/* ==================================================
-              RECOMMENDATIONS
-              ================================================== */}
+          {tab === 'risk' && risk && <RiskAssessment risk={risk} market={market} />}
 
           {tab === 'recommendations' && recommendations && (
             <Recommendations
               recommendations={recommendations}
+              submission={submission}
+              market={market}
+              risk={risk}
+              readiness={readiness}
+              projectId={projectId}
+              onAnalysisReady={setStrategicAnalysis}
             />
           )}
 
-          {/* ==================================================
-              EXECUTIVE DASHBOARD
-              ================================================== */}
-
-          {tab === 'dashboard' &&
-            market &&
-            readiness &&
-            risk &&
-            analysis && (
-
-              <Dashboard
-                market={market}
-                readiness={readiness}
-                risk={risk}
-
-                /*
-                 * Milestone 2
-                 */
-                advancedRisk={analysis.advancedRisk}
-                swot={analysis.swot}
-                feasibility={analysis.feasibility}
-
-                /*
-                 * AI Executive Summary
-                 */
-                aiSummary={aiSummary}
-
-                /*
-                 * Original project information
-                 */
-                submission={submission}
-              />
-
-            )}
-
-          {/* ==================================================
-              EMPTY STATE
-              ================================================== */}
+          {tab === 'dashboard' && market && readiness && risk && (
+            <Dashboard
+              market={market}
+              readiness={readiness}
+              risk={risk}
+              submission={submission}
+              recommendations={recommendations}
+              strategicAnalysis={strategicAnalysis}
+              onViewStrategy={() => setTab('recommendations')}
+            />
+          )}
 
           {tab !== 'input' && !submission && (
             <div className="h-full flex items-center justify-center text-center text-fg-low text-sm px-6">
-
-              Submit a project on the Project Input tab
-              to generate this view.
-
+              Submit a project on the Project Input tab to generate this view.
             </div>
           )}
-
         </div>
-
       </div>
-
     </div>
   )
 }
 
-/*
- * ==============================================================
- * DATABASE SAVE STATUS
- * ==============================================================
- */
-
 function SaveStatus({ state, error }) {
   if (state === 'idle') return null
-
   const config = {
-    saving: {
-      text: 'Saving to database…',
-      className: 'text-fg-low'
-    },
-
-    saved: {
-      text: 'Saved to database',
-      className: 'text-accent'
-    },
-
-    error: {
-      text: `Save failed${error ? `: ${error}` : ''}`,
-      className: 'text-danger'
-    }
+    saving: { text: 'Saving to database…', className: 'text-fg-low' },
+    saved: { text: 'Saved to database', className: 'text-accent' },
+    error: { text: `Save failed${error ? `: ${error}` : ''}`, className: 'text-danger' }
   }[state]
 
-  if (!config) return null
-
   return (
-    <span
-      className={`ml-auto font-mono text-[10px] tracking-[0.1em] uppercase ${config.className}`}
-    >
+    <span className={`ml-auto font-mono text-[10px] tracking-[0.1em] uppercase ${config.className}`}>
       {config.text}
     </span>
   )

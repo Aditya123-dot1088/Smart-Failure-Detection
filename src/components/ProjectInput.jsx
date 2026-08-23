@@ -1,19 +1,17 @@
 import { useState } from 'react'
 import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
+  LineChart,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
+  ResponsiveContainer,
   Legend
-} from "recharts";
+} from 'recharts'
 import { Card } from './ui.jsx'
 import { SECTOR_NAMES, BUSINESS_MODELS } from '../data/sectors.js'
 import { generateMarketData, inr } from '../utils/analysis.js'
-import KPICards from "./KPICards";
 
 const EMPTY = {
   name: '',
@@ -49,9 +47,15 @@ export default function ProjectInput({ onAnalyze, submission }) {
     onAnalyze(form)
   }
 
+  const chartData = preview.trend.map((t, i) => ({
+    year: t.year,
+    tam: Math.round(10 + i * (preview.tamGrowth / 1.6)),
+    sam: Math.round(6 + i * (preview.samGrowth / 1.8))
+  }))
+
   return (
-    <div className="h-full overflow-y-auto px-6 py-4 fade-up">
-      <div className="max-w-7xl mx-auto flex flex-col">
+    <div className="h-full overflow-hidden px-6 py-4 fade-up">
+      <div className="max-w-7xl mx-auto h-full flex flex-col">
         <div className="mb-3 shrink-0">
           <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-brass mb-1">
             Milestone 1 · Data Collection
@@ -61,11 +65,9 @@ export default function ProjectInput({ onAnalyze, submission }) {
           </h1>
         </div>
 
-        <KPICards />
-
-        <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4 flex-1 min-h-0">
           {/* Submission form */}
-          <Card className="glass hover-card p-5">
+          <Card className="glass hover-card p-5 overflow-y-auto">
             <h2 className="font-display font-semibold text-sm text-fg-hi mb-3">Project Submission</h2>
             <form onSubmit={handleAnalyze} className="space-y-3">
               <Field label="Startup / Project Name">
@@ -151,140 +153,46 @@ export default function ProjectInput({ onAnalyze, submission }) {
           </Card>
 
           {/* Market analysis + competitor landscape */}
-          <div className="flex flex-col gap-4">
-            <Card className="glass hover-card p-5">
-              <div className="flex items-center justify-between mb-1">
+          <div className="grid grid-rows-[1fr_1fr] gap-4 min-h-0">
+            <Card className="glass hover-card p-5 overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between mb-1 shrink-0">
                 <h2 className="font-display font-semibold text-sm text-fg-hi">Market Analysis</h2>
                 <span className="font-mono text-[10px] text-fg-low">{preview.sectorName}</span>
               </div>
-              <div className="grid grid-cols-3 gap-3 mt-1 mb-1">
+              <div className="grid grid-cols-3 gap-3 mt-2 mb-2 shrink-0">
                 <MiniStat label="TAM" value={inr(preview.tam)} delta={`+${preview.tamGrowth.toFixed(1)}%`} />
                 <MiniStat label="SAM" value={inr(preview.sam)} delta={`+${preview.samGrowth.toFixed(1)}%`} />
                 <MiniStat label="SOM" value={inr(preview.som)} delta={`+${(preview.samGrowth / 4).toFixed(1)}%`} />
               </div>
 
-              <div>
+              <div className="flex-1 min-h-0">
                 <p className="font-mono text-[9px] tracking-[0.14em] uppercase text-fg-low mb-1">
-                  Historical Market Growth & Forecast
+                  Market Trends (2020–2026)
                 </p>
-                <div className="h-[220px]">
+                <div className="h-[calc(100%-14px)]">
                   <ResponsiveContainer width="100%" height="100%">
-  <AreaChart
-    data={preview.trend}
-    margin={{ top: 10, right: 10, left: 0, bottom: 10 }}
-  >
-    <defs>
-      <linearGradient id="tamGradient" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="5%" stopColor="#FF5A6A" stopOpacity={0.35} />
-        <stop offset="95%" stopColor="#FF5A6A" stopOpacity={0} />
-      </linearGradient>
-
-      <linearGradient id="samGradient" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="5%" stopColor="#21D4C3" stopOpacity={0.30} />
-        <stop offset="95%" stopColor="#21D4C3" stopOpacity={0} />
-      </linearGradient>
-    </defs>
-
-    <CartesianGrid
-      stroke="#2F3748"
-      strokeDasharray="3 3"
-      vertical={false}
-      opacity={0.45}
-    />
-
-    <XAxis
-      dataKey="year"
-      tick={{ fill: "#8A93A8", fontSize: 12 }}
-      axisLine={false}
-      tickLine={false}
-    />
-
-    <YAxis
-      domain={["auto", "auto"]}
-      axisLine={false}
-      tickLine={false}
-      tick={{ fill: "#8A93A8", fontSize: 12 }}
-      tickFormatter={(value) => {
-        if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
-        if (value >= 1000) return `${Math.round(value / 1000)}K`;
-        return value;
-      }}
-    />
-
-    <Tooltip
-      formatter={(value) => [`₹${Number(value).toLocaleString("en-IN")} Cr`]}
-      labelStyle={{ color: "#ffffff" }}
-      contentStyle={{
-        background: "#141923",
-        border: "1px solid #2C3445",
-        borderRadius: 14,
-        color: "#fff"
-      }}
-    />
-
-    <Legend
-      iconType="circle"
-      wrapperStyle={{
-        fontSize: 12,
-        paddingTop: 10
-      }}
-    />
-
-    <Area
-      type="monotone"
-      dataKey="tam"
-      stroke="none"
-      fill="url(#tamGradient)"
-    />
-
-    <Area
-      type="monotone"
-      dataKey="sam"
-      stroke="none"
-      fill="url(#samGradient)"
-    />
-
-    <Line
-      type="monotone"
-      dataKey="tam"
-      name="TAM (₹ Cr)"
-      stroke="#FF5A6A"
-      strokeWidth={3}
-      dot={false}
-      activeDot={{
-        r: 8,
-        strokeWidth: 3
-      }}
-      animationDuration={1800}
-      animationEasing="ease-out"
-    />
-
-    <Line
-      type="monotone"
-      dataKey="sam"
-      name="SAM (₹ Cr)"
-      stroke="#21D4C3"
-      strokeWidth={3}
-      dot={false}
-      activeDot={{
-        r: 8,
-        strokeWidth: 3
-      }}
-      animationDuration={1800}
-      animationEasing="ease-out"
-    />
-  </AreaChart>
-</ResponsiveContainer>
+                    <LineChart data={chartData} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
+                      <CartesianGrid stroke="#242938" vertical={false} />
+                      <XAxis dataKey="year" tick={{ fontSize: 10, fill: '#5B6274' }} axisLine={{ stroke: '#242938' }} tickLine={false} />
+                      <YAxis tick={{ fontSize: 10, fill: '#5B6274' }} axisLine={false} tickLine={false} unit="%" />
+                      <Tooltip
+                        contentStyle={{ borderRadius: 10, border: '1px solid #242938', background: '#171B24', color: '#EDEFF3', fontSize: 11 }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 10 }} />
+                      <Line type="monotone" dataKey="tam" name="TAM Growth (%)" stroke="#E1596A" strokeWidth={2} dot={{ r: 2 }} />
+                      <Line type="monotone" dataKey="sam" name="SAM Growth (%)" stroke="#2BB3A3" strokeWidth={2} dot={{ r: 2 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
             </Card>
 
-            <Card className="glass hover-card p-5 flex flex-col">
-              <div className="flex items-center justify-between mb-2">
+            <Card className="glass hover-card p-5 overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between mb-2 shrink-0">
                 <h2 className="font-display font-semibold text-sm text-fg-hi">Competitor Landscape</h2>
                 <span className="font-mono text-[10px] text-fg-low">{preview.competitors.length} tracked</span>
               </div>
-              <div className="space-y-2 max-h-[280px] overflow-y-auto">
+              <div className="space-y-2 overflow-y-auto flex-1 min-h-0">
                 {preview.competitors.map((c) => (
                   <div key={c.name} className="border border-line rounded-lg p-2.5">
                     <div className="flex items-center justify-between mb-1">

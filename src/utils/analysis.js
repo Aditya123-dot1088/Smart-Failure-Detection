@@ -1,19 +1,6 @@
 import { SECTORS } from '../data/sectors.js'
-import { calculateRisk } from './riskEngine'
-import { generateSWOT } from './swotEngine'
-import { calculateFeasibility } from './feasibilityEngine'
 
-const currentYear = new Date().getFullYear();
-
-const YEARS = [
-  { label: "5 Years Ago", year: currentYear - 5 },
-  { label: "4 Years Ago", year: currentYear - 4 },
-  { label: "3 Years Ago", year: currentYear - 3 },
-  { label: "2 Years Ago", year: currentYear - 2 },
-  { label: "1 Year Ago", year: currentYear - 1 },
-  { label: "Current Year", year: currentYear },
-  { label: "Next Year", year: currentYear + 1 }
-];
+const YEARS = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
 
 // INR-crore formatter, e.g. 18500 -> ₹18,500 Cr ; 92 -> ₹92 Cr
 export function inr(value) {
@@ -32,50 +19,12 @@ export function generateMarketData(sectorName, budgetLakh) {
 
   // Build a 7-year SOM capture trajectory: early years modest, ramping up,
   // with one deliberate soft year to mirror real acquisition-funnel drag.
-const trend = YEARS.map((item) => {
-
-  const yearsBack = currentYear - item.year;
-
-  // Historical growth adjustment (older years had slightly slower growth)
-  const historicalFactor =
-    yearsBack === 5 ? 0.82 :
-    yearsBack === 4 ? 0.86 :
-    yearsBack === 3 ? 0.90 :
-    yearsBack === 2 ? 0.95 :
-    yearsBack === 1 ? 0.98 :
-    yearsBack === 0 ? 1.00 :
-    1 + sector.tamGrowth / 100;
-
-  let tamValue;
-  let samValue;
-
-  if (item.year <= currentYear) {
-    // Historical values
-    tamValue = tam * historicalFactor;
-    samValue = sam * (
-      yearsBack === 5 ? 0.76 :
-      yearsBack === 4 ? 0.82 :
-      yearsBack === 3 ? 0.88 :
-      yearsBack === 2 ? 0.94 :
-      yearsBack === 1 ? 0.98 :
-      1.00
-    );
-  } else {
-    // Next year's projection
-    tamValue = tam * (1 + sector.tamGrowth / 100);
-    samValue = sam * (1 + sector.samGrowth / 100);
-  }
-
-  const somValue = samValue * sector.somShare * budgetFactor;
-
-  return {
-    year: item.label,
-    tam: Math.round(tamValue),
-    sam: Math.round(samValue),
-    som: Math.round(somValue)
-  };
-
-});
+  const trend = YEARS.map((year, i) => {
+    const progress = i / (YEARS.length - 1)
+    const dip = i === 4 ? 0.92 : 1 // small dip mid-trajectory
+    const value = som * (0.18 + 0.82 * Math.pow(progress, 1.35)) * dip
+    return { year, som: Math.round(value) }
+  })
 
   const competitors = [...sector.competitors].sort((a, b) => b.share - a.share)
   const topShare = competitors[0]?.share ?? 0
@@ -284,73 +233,4 @@ function levelFor(score) {
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value))
-}
-export function analyzeProject(input) {
-
-    // Existing Market Analysis
-    const market = generateMarketData(
-        input.sector,
-        Number(input.budgetLakh)
-    );
-
-    // Existing Risk Engine
-    const risk = computeRisk(input, market);
-
-    // New Risk Engine
-    const advancedRisk = calculateRisk({
-        sector: input.sector,
-        businessModel: input.businessModel,
-        budgetLakh: Number(input.budgetLakh),
-        competitors: market.competitors.length
-    });
-
-    // SWOT
-    const swot = generateSWOT({
-        sector: input.sector,
-        businessModel: input.businessModel,
-        budgetLakh: Number(input.budgetLakh),
-        competitors: market.competitors.length
-    });
-
-    // Feasibility
-    const feasibility = calculateFeasibility(
-        {
-            sector: input.sector,
-            businessModel: input.businessModel,
-            budgetLakh: Number(input.budgetLakh),
-            competitors: market.competitors.length
-        },
-        advancedRisk
-    );
-
-    // Existing Recommendations
-    const recommendations =
-        computeRecommendations(
-            risk,
-            market,
-            input
-        );
-
-    // Existing Readiness
-    const readiness =
-        computeReadiness(risk);
-
-    return {
-
-        market,
-
-        risk,
-
-        advancedRisk,
-
-        swot,
-
-        feasibility,
-
-        recommendations,
-
-        readiness
-
-    };
-
 }

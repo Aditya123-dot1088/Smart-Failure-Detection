@@ -1,9 +1,7 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 
 async function request(path, options) {
- console.log("API URL:", `${API_BASE}${path}`);
-
-const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
     ...options
   })
@@ -32,4 +30,21 @@ export function getProject(id) {
 
 export function deleteProject(id) {
   return request(`/api/projects/${id}`, { method: 'DELETE' })
+}
+
+// --- Milestone 3: Strategic Intelligence ---
+
+export function generateStrategicAnalysis(payload) {
+  return request('/api/strategic-analysis', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  })
+}
+
+export function getStrategicAnalysis(projectId) {
+  return request(`/api/strategic-analysis/${projectId}`)
+}
+
+export function getHealth() {
+  return request('/api/health')
 }

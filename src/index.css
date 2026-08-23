@@ -4,429 +4,66 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ---------------- Base ---------------- */
-
-html,
-body,
-#root {
+html, body, #root {
   height: 100%;
-}
-
-html {
-  scroll-behavior: smooth;
 }
 
 body {
   @apply bg-canvas text-fg-hi font-body antialiased;
-
   background-image:
-    radial-gradient(circle at 1px 1px, rgba(255,255,255,.03) 1px, transparent 0),
-    radial-gradient(circle at top right, rgba(212,175,55,.05), transparent 35%),
-    radial-gradient(circle at bottom left, rgba(20,184,166,.04), transparent 35%);
-
-  background-size:
-    28px 28px,
-    100% 100%,
-    100% 100%;
-
-  text-rendering: optimizeLegibility;
-
-  -webkit-font-smoothing: antialiased;
-
-  -moz-osx-font-smoothing: grayscale;
-
-  overflow: hidden;
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 0);
+  background-size: 28px 28px;
 }
 
-*{
-    box-sizing:border-box;
+::selection {
+  @apply bg-brass/25;
 }
 
-::selection{
-    @apply bg-brass/25 text-white;
+/* subtle scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2A3040; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #3A4155; }
+
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
-/* ---------------- Scrollbar ---------------- */
-
-::-webkit-scrollbar{
-    width:10px;
-    height:10px;
+.font-feature-ss01 {
+  font-feature-settings: "ss01" 1;
 }
 
-::-webkit-scrollbar-track{
-    background:transparent;
+/* Premium surface treatment, built on the existing brass/canvas token system */
+.glass {
+  background: linear-gradient(180deg, rgba(237,239,243,0.045) 0%, rgba(237,239,243,0.015) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
-::-webkit-scrollbar-thumb{
-
-    background:#2F3748;
-
-    border-radius:999px;
-
-    border:2px solid transparent;
-
+.hover-card {
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-::-webkit-scrollbar-thumb:hover{
-
-    background:#485167;
-
+.hover-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(198,161,91,0.35);
+  box-shadow: 0 24px 52px -16px rgba(0,0,0,0.7), 0 0 0 1px rgba(198,161,91,0.12);
 }
 
-/* ---------------- Typography ---------------- */
-
-.tabular{
-
-    font-variant-numeric:tabular-nums;
-
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.font-feature-ss01{
-
-    font-feature-settings:"ss01" 1;
-
+.fade-up {
+  animation: fadeUp 0.4s ease both;
 }
 
-/* ---------------- Glass ---------------- */
-
-.glass{
-
-    background:
-    linear-gradient(
-    180deg,
-    rgba(255,255,255,.05),
-    rgba(255,255,255,.015)
-    );
-
-    backdrop-filter:blur(22px);
-
-    -webkit-backdrop-filter:blur(22px);
-
-    border:1px solid rgba(255,255,255,.06);
-
+@keyframes softPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(198,161,91,0); }
+  50% { box-shadow: 0 0 0 3px rgba(198,161,91,0.08); }
 }
 
-/* ---------------- Premium Cards ---------------- */
-
-.hover-card{
-
-    transition:
-
-    transform .35s cubic-bezier(.22,.61,.36,1),
-
-    border-color .35s,
-
-    box-shadow .35s,
-
-    background .35s;
-
-}
-
-.hover-card:hover{
-
-    transform:
-
-    translateY(-4px);
-
-    border-color:
-
-    rgba(212,175,55,.30);
-
-    box-shadow:
-
-    0 30px 70px rgba(0,0,0,.45),
-
-    0 0 0 1px rgba(212,175,55,.10);
-
-}
-
-/* ---------------- Focus ---------------- */
-
-input:focus,
-textarea:focus,
-select:focus{
-
-    outline:none;
-
-    box-shadow:
-
-    0 0 0 2px rgba(212,175,55,.18);
-
-}
-
-/* ---------------- Buttons ---------------- */
-
-button{
-
-    transition:
-
-    transform .25s,
-
-    box-shadow .25s,
-
-    opacity .25s;
-
-}
-
-button:hover{
-
-    transform:translateY(-2px);
-
-}
-
-button:active{
-
-    transform:translateY(0);
-
-}
-
-/* ---------------- Fade ---------------- */
-
-@keyframes fadeUp{
-
-from{
-
-opacity:0;
-
-transform:
-
-translateY(12px);
-
-}
-
-to{
-
-opacity:1;
-
-transform:
-
-translateY(0);
-
-}
-
-}
-
-.fade-up{
-
-animation:
-
-fadeUp .45s ease both;
-
-}
-
-/* ---------------- Soft Pulse ---------------- */
-
-@keyframes softPulse{
-
-0%,100%{
-
-box-shadow:
-
-0 0 0 0 rgba(212,175,55,0);
-
-}
-
-50%{
-
-box-shadow:
-
-0 0 0 5px rgba(212,175,55,.08);
-
-}
-
-}
-
-.soft-pulse{
-
-animation:
-
-softPulse 3.5s ease infinite;
-
-}
-
-/* ---------------- Floating ---------------- */
-
-@keyframes floatCard{
-
-0%,100%{
-
-transform:
-
-translateY(0);
-
-}
-
-50%{
-
-transform:
-
-translateY(-2px);
-
-}
-
-}
-
-.float-card{
-
-animation:
-
-floatCard 6s ease-in-out infinite;
-
-}
-
-/* ---------------- Page Animation ---------------- */
-
-.page-enter{
-
-animation:
-
-fadeUp .45s ease;
-
-}
-/* ============================================================
-   EXECUTIVE REPORT / PDF PRINT MODE
-   ============================================================ */
-
-@media print {
-
-  @page {
-    size: A4;
-    margin: 12mm;
-  }
-
-  html,
-  body {
-    width: 100%;
-    height: auto;
-    overflow: visible !important;
-    background: #ffffff !important;
-  }
-
-  /*
-   * Hide the application shell.
-   * Only the dashboard report remains visible.
-   */
-
-  body * {
-    visibility: hidden !important;
-  }
-
-  .print-report,
-  .print-report * {
-    visibility: visible !important;
-  }
-
-  /*
-   * Expand the report to the printable page.
-   */
-
-  .print-report {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-
-    width: 100% !important;
-    height: auto !important;
-
-    overflow: visible !important;
-
-    padding: 0 !important;
-
-    background: #ffffff !important;
-
-    color: #111827 !important;
-  }
-
-  /*
-   * Remove dark application backgrounds from cards.
-   */
-
-  .print-report .glass,
-  .print-report [class*="bg-raised"],
-  .print-report [class*="bg-canvas"] {
-    background: #ffffff !important;
-    color: #111827 !important;
-    box-shadow: none !important;
-  }
-
-  /*
-   * Text colors for printing.
-   */
-
-  .print-report h1,
-  .print-report h2,
-  .print-report h3,
-  .print-report p,
-  .print-report span,
-  .print-report div {
-    color: #111827 !important;
-  }
-
-  /*
-   * Keep gold accent headings.
-   */
-
-  .print-report .text-brass,
-  .print-report [class*="text-brass"] {
-    color: #8a641d !important;
-  }
-
-  /*
-   * Borders.
-   */
-
-  .print-report [class*="border-line"] {
-    border-color: #d7dce5 !important;
-  }
-
-  /*
-   * Prevent individual cards from splitting across pages.
-   */
-
-  .print-report section,
-  .print-report article,
-  .print-report .glass {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
-  /*
-   * Make charts print cleanly.
-   */
-
-  .print-report svg {
-    max-width: 100%;
-  }
-
-  /*
-   * Remove hover effects.
-   */
-
-  .print-report * {
-    animation: none !important;
-    transition: none !important;
-  }
-
-  /*
-   * Hide interactive elements from report.
-   */
-
-  .print-report button {
-    display: none !important;
-  }
-
-  /*
-   * Give the report some professional spacing.
-   */
-
-  .print-report {
-    font-family: Arial, Helvetica, sans-serif !important;
-  }
-
-  .print-report h1,
-  .print-report h2,
-  .print-report h3 {
-    font-family: Georgia, "Times New Roman", serif !important;
-  }
-
+.soft-pulse {
+  animation: softPulse 3.5s ease-in-out infinite;
 }

@@ -2,30 +2,8 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import pool from './db.js'
-
-const CREATE_TABLE_SQL = `
-CREATE TABLE IF NOT EXISTS projects (
-  id BIGSERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
-  sector TEXT NOT NULL,
-  business_model TEXT NOT NULL,
-  target_market TEXT,
-  budget_lakh NUMERIC,
-  description TEXT,
-  market JSONB,
-  risk JSONB,
-  recommendations JSONB,
-  readiness JSONB,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects (created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_projects_sector ON projects (sector);
-`;
-
-await pool.query(CREATE_TABLE_SQL);
-console.log("Projects table is ready.");
+import { getAIConfig } from './services/aiProvider.js'
+import { runStrategicPipeline } from './services/agents.js'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 4000
@@ -41,7 +19,7 @@ app.use(express.json({ limit: '1mb' }))
 app.get('/api/health', async (_req, res) => {
   try {
     await pool.query('SELECT 1')
-    res.json({ status: 'ok', db: 'connected' })
+    res.json({ status: 'ok', db: 'connected', ai: getAIConfig() })
   } catch (err) {
     res.status(500).json({ status: 'error', db: 'unreachable', message: err.message })
   }
@@ -49,8 +27,6 @@ app.get('/api/health', async (_req, res) => {
 
 // Create a project submission (with computed market/risk/recommendations/readiness snapshot)
 app.post('/api/projects', async (req, res) => {
-  console.log("POST /api/projects");
-  console.log(req.body);
   const {
     name,
     sector,
@@ -129,16 +105,62 @@ app.delete('/api/projects/:id', async (req, res) => {
   }
 })
 
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Enterprise Startup Intelligence Suite API',
-    status: 'Running',
-    endpoints: [
-      '/api/health',
-      '/api/projects'
-    ]
-  });
-});
+// --- Milestone 3: Strategic Intelligence -----------------------------------
+// Runs the 7-agent reasoning pipeline (market -> risk -> SWOT -> feasibility
+// -> strategy [Gemini/OpenAI or fallback] -> mitigation -> recommendation)
+// and persists the result against the project when a projectId is given.
+app.post('/api/strategic-analysis', async (req, res) => {
+  const { projectId, submission, market, risk, readiness, recommendations } = req.body || {}
+
+  if (!submission || !market || !risk || !readiness) {
+    return res.status(400).json({ error: 'submission, market, risk, and readiness are required.' })
+  }
+
+  let result
+  try {
+    result = await runStrategicPipeline({ submission, market, risk, readiness, recommendations })
+  } catch (err) {
+    console.error('Strategic pipeline failed:', err)
+    return res.status(500).json({ error: 'Failed to generate strategic analysis.' })
+  }
+
+  let persisted = false
+  if (projectId) {
+    try {
+      await pool.query(
+        `INSERT INTO strategic_analyses (project_id, steps, report, ai_provider, ai_model)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          projectId,
+          JSON.stringify(result.steps),
+          JSON.stringify(result.report),
+          result.ai.provider,
+          result.ai.model
+        ]
+      )
+      persisted = true
+    } catch (err) {
+      console.error('Failed to persist strategic analysis:', err)
+    }
+  }
+
+  res.json({ ...result, persisted })
+})
+
+// Fetch the most recent strategic analysis saved for a project
+app.get('/api/strategic-analysis/:projectId', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM strategic_analyses WHERE project_id = $1 ORDER BY created_at DESC LIMIT 1`,
+      [req.params.projectId]
+    )
+    if (!rows[0]) return res.status(404).json({ error: 'Not found' })
+    res.json(rows[0])
+  } catch (err) {
+    console.error('GET /api/strategic-analysis/:projectId failed:', err)
+    res.status(500).json({ error: 'Failed to fetch strategic analysis.' })
+  }
+})
 
 app.listen(PORT, () => {
   console.log(`Project Intake API listening on http://localhost:${PORT}`)

@@ -4,97 +4,54 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: '#07090E',
-        canvas: '#090B11',
-        surface: '#121720',
-        raised: '#171D28',
-
-        line: '#283041',
-        'line-soft': '#1D2330',
-
+        ink: '#0A0C11',
+        canvas: '#0B0D12',
+        surface: '#12151C',
+        raised: '#171B24',
+        line: '#242938',
+        'line-soft': '#1B2029',
         fg: {
-          hi: '#F7F8FB',
-          mid: '#B5BDCD',
-          low: '#707A90'
+          hi: '#EDEFF3',
+          mid: '#9AA1B2',
+          low: '#5B6274'
         },
-
         primary: {
-          DEFAULT: '#121720',
-          light: '#1B2230',
-          dark: '#080A10'
+          DEFAULT: '#12151C',
+          light: '#171B24',
+          dark: '#0A0C11'
         },
-
         brass: {
-          DEFAULT: '#D4AF37',
-          light: '#F1D488',
-          dark: '#9C7B20',
-          glow: 'rgba(212,175,55,.22)'
+          DEFAULT: '#C6A15B',
+          light: '#DDBE84',
+          dark: '#8F7238',
+          glow: 'rgba(198,161,91,0.16)'
         },
-
         accent: {
-          DEFAULT: '#14B8A6',
-          light: '#55E5D4',
-          dark: '#0D7C71'
+          DEFAULT: '#2BB3A3',
+          light: '#5FD1C4',
+          dark: '#1D8578'
         },
-
-        danger: '#EF5350',
-        amber: '#F5B942',
-        success: '#22C55E'
+        danger: '#E1596A',
+        amber: '#E3A23C',
+        success: '#2BB3A3'
       },
-
       fontFamily: {
-        display: ['Fraunces', 'serif'],
-        body: ['Inter', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace']
+        display: ['"Fraunces"', 'serif'],
+        body: ['"Inter"', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace']
       },
-
       boxShadow: {
-        card:
-          '0 1px 0 rgba(255,255,255,.03) inset,0 18px 40px -18px rgba(0,0,0,.75)',
-
-        pop:
-          '0 35px 70px -20px rgba(0,0,0,.80)',
-
-        inset:
-          'inset 0 1px 0 rgba(255,255,255,.05)',
-
-        brass:
-          '0 0 0 1px rgba(212,175,55,.30),0 18px 45px -15px rgba(212,175,55,.35)',
-
-        glass:
-          '0 8px 40px rgba(0,0,0,.45)',
-
-        glow:
-          '0 0 30px rgba(212,175,55,.18)'
+        card: '0 1px 0 rgba(255,255,255,0.02) inset, 0 12px 28px -16px rgba(0,0,0,0.6)',
+        pop: '0 24px 52px -16px rgba(0,0,0,0.7)',
+        inset: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+        brass: '0 0 0 1px rgba(198,161,91,0.25), 0 8px 24px -8px rgba(198,161,91,0.25)'
       },
-
       borderRadius: {
-        xl2: '1.35rem',
-        xl3: '1.7rem'
+        xl2: '1.25rem'
       },
-
-      transitionTimingFunction: {
-        premium: 'cubic-bezier(.22,.61,.36,1)'
-      },
-
-      transitionDuration: {
-        400: '400ms',
-        600: '600ms'
-      },
-
       backgroundImage: {
-        'grid-fade':
-          'radial-gradient(circle at 1px 1px, rgba(255,255,255,.04) 1px, transparent 0)',
-
-        'brass-fade':
-          'linear-gradient(180deg, rgba(212,175,55,.35) 0%, rgba(212,175,55,0) 100%)',
-
-        'premium-card':
-          'linear-gradient(145deg, rgba(255,255,255,.04), rgba(255,255,255,.01))'
-      },
-
-      backdropBlur: {
-        premium: '22px'
+        'grid-fade': 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0)',
+        'brass-fade': 'linear-gradient(180deg, rgba(198,161,91,0.5) 0%, rgba(198,161,91,0) 100%)'
       }
     }
   },
