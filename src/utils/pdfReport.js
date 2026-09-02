@@ -289,6 +289,7 @@ function buildReportHtml({
         submission,
         market,
         risk,
+        readiness,
         generated,
         verdict,
         successPrediction
@@ -329,6 +330,7 @@ function coverBlock({
   submission,
   market,
   risk,
+  readiness,
   generated,
   verdict,
   successPrediction
@@ -459,7 +461,7 @@ function coverBlock({
         </span>
 
         <strong>
-          ${esc(readiness.overall)}%
+          ${esc(Number(readiness?.overall ?? 0))}%
         </strong>
       </div>
 
@@ -469,7 +471,7 @@ function coverBlock({
         </span>
 
         <strong>
-          ${esc(risk.criticalFlags)}
+          ${esc(Number(risk?.criticalFlags ?? 0))}
         </strong>
       </div>
 

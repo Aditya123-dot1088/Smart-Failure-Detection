@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -11,7 +12,10 @@ import {
 
 import { Card } from './ui.jsx'
 import { inr } from '../utils/analysis.js'
-import { downloadPdfReport } from '../utils/pdfReport.js'
+// Lazy-loaded on demand: jspdf + html2canvas are heavy and only needed
+// once someone actually clicks "Download PDF Report", so they're kept
+// out of the main bundle to shrink the initial load.
+const loadPdfReport = () => import('../utils/pdfReport.js')
 
 export default function Dashboard({ market, readiness, risk, submission, recommendations, strategicAnalysis, onViewStrategy }) {
  const readinessScore = readiness?.overall ?? 0
@@ -145,6 +149,8 @@ const recommendation =
           </Card>
         </div>
 
+        <RiskBreakdownChart risk={risk} />
+
         <StrategicOutlook
           risk={risk}
           readiness={readiness}
@@ -162,6 +168,71 @@ const recommendation =
         />
       </div>
     </div>
+  )
+}
+
+// --- Risk Category Comparison (Milestone 4: which areas threaten launch most) ---
+
+const RISK_LEVEL_COLOR = {
+  HIGH: '#E1596A',
+  MEDIUM: '#E3A23C',
+  LOW: '#2BB3A3'
+}
+
+function RiskBreakdownChart({ risk }) {
+  const categories = risk?.categories || []
+  if (!categories.length) return null
+
+  const data = [...categories].sort((a, b) => b.score - a.score)
+  const highestRisk = data[0]
+
+  return (
+    <Card className="glass hover-card p-5 flex flex-col overflow-hidden h-[300px]">
+      <div className="flex items-center justify-between mb-1 shrink-0">
+        <div>
+          <h2 className="font-display font-semibold text-[14px] text-fg-hi">Risk Category Comparison</h2>
+          <p className="text-[11px] text-fg-low mt-0.5">Which areas create the greatest threat to launch?</p>
+        </div>
+        {highestRisk && (
+          <span className="font-mono text-[9.5px] tracking-[0.1em] uppercase px-2.5 py-1 rounded-full border"
+            style={{
+              color: RISK_LEVEL_COLOR[highestRisk.level],
+              borderColor: `${RISK_LEVEL_COLOR[highestRisk.level]}40`,
+              background: `${RISK_LEVEL_COLOR[highestRisk.level]}14`
+            }}
+          >
+            Top risk · {highestRisk.label}
+          </span>
+        )}
+      </div>
+      <div className="flex-1 min-h-0 mt-2">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, left: 4, bottom: 0 }}>
+            <CartesianGrid stroke="#1E2330" horizontal={false} strokeDasharray="3 4" />
+            <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: '#5B6274' }} axisLine={{ stroke: '#242938' }} tickLine={false} />
+            <YAxis
+              type="category"
+              dataKey="label"
+              tick={{ fontSize: 10.5, fill: '#9AA1B2' }}
+              axisLine={false}
+              tickLine={false}
+              width={110}
+            />
+            <Tooltip
+              cursor={{ fill: 'rgba(198,161,91,0.06)' }}
+              formatter={(value, _name, item) => [`${value}/100 · ${capitalize(item.payload.level)}`, 'Risk score']}
+              contentStyle={{ borderRadius: 10, border: '1px solid #2A3040', background: '#171B24', color: '#EDEFF3', fontSize: 11, boxShadow: '0 12px 32px -8px rgba(0,0,0,0.5)' }}
+              labelStyle={{ color: '#9AA1B2', fontSize: 10, marginBottom: 2 }}
+            />
+            <Bar dataKey="score" name="Risk score" radius={[0, 6, 6, 0]} maxBarSize={22}>
+              {data.map((entry) => (
+                <Cell key={entry.key} fill={RISK_LEVEL_COLOR[entry.level] || '#C6A15B'} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </Card>
   )
 }
 
@@ -272,7 +343,7 @@ function ExecutiveReport({
   const [downloading, setDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState(null)
 
-  function handleDownload() {
+  async function handleDownload() {
     setDownloadError(null)
     setDownloading(true)
 
@@ -294,7 +365,9 @@ function ExecutiveReport({
         throw new Error('Launch readiness data is missing.')
       }
 
-      downloadPdfReport({
+      const { downloadPdfReport } = await loadPdfReport()
+
+      await downloadPdfReport({
         submission,
         market,
         risk,
@@ -311,11 +384,7 @@ function ExecutiveReport({
         error?.message || 'Unable to generate the report.'
       )
     } finally {
-      // The browser print window opens separately.
-      // Keep the button responsive after a short delay.
-      setTimeout(() => {
-        setDownloading(false)
-      }, 600)
+      setDownloading(false)
     }
   }
 
