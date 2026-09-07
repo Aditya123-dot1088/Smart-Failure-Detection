@@ -7,12 +7,14 @@ import { runStrategicPipeline } from './services/agents.js'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 4000
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
-  .split(',')
-  .map((s) => s.trim())
-  .filter(Boolean)
+const corsEnv = process.env.CORS_ORIGIN || 'http://localhost:5173'
+const allowedOrigins = corsEnv.split(',').map((s) => s.trim()).filter(Boolean)
 
-app.use(cors({ origin: allowedOrigins }))
+app.use(
+  cors({
+    origin: corsEnv === '*' || allowedOrigins.includes('*') ? '*' : allowedOrigins
+  })
+)
 app.use(express.json({ limit: '1mb' }))
 
 // Health check — also verifies DB connectivity
