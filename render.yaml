@@ -6,6 +6,7 @@ services:
     rootDir: server
     buildCommand: npm install
     startCommand: npm run migrate && npm start
+
     envVars:
       - key: NODE_ENV
         value: production
@@ -14,7 +15,10 @@ services:
         value: 4000
 
       - key: CORS_ORIGIN
-        sync: false
+        fromService:
+          name: project-intake-frontend
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
 
       - key: DATABASE_URL
         fromDatabase:
@@ -38,9 +42,11 @@ services:
 
     envVars:
       - key: VITE_API_URL
-        sync: false
+        fromService:
+          name: project-intake-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
 
 databases:
   - name: project-intake-db
     databaseName: project_intake
-    user: postgres
